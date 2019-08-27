@@ -17,8 +17,8 @@ class Pickle:
         
     def prepare_dump(self):#存在Shopper的資料夾
         dirname = os.path.join(path, self.site)
-        os.chdir(dirname)
         os.makedirs(dirname, exist_ok = True)
+        os.chdir(dirname)
         ts = time.time()
         filename = os.path.join(dirname, '{}.{}.pickle'.format(self.site, ts))
         return filename
