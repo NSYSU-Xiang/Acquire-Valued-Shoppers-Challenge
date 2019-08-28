@@ -29,16 +29,12 @@ class Pickle:
             pickle.dump(obj, fd)
             
     def loadall(self, filename):
-        with open(filename, "rb") as f:
-            while True:
-                try:
-                    #return pickle.load(f)
-                    yield pickle.load(f)
-                except EOFError:
-                    break
-                #for i in os.listdir():
-                #    for j in Pickle().loadall(i):
-                #        print(j)
+        pkl_list = []
+        for pkl in filename:
+            with open(pkl, "rb") as f:
+                pkl_list.append(pickle.load(f))
+        return pkl_list
+    
 class Acquire:
     logger = logging.getLogger('Acquire')
     def __init__(self):
