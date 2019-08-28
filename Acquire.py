@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+path = "C:\\Users\\Xiang\\Desktop"
 import os
+os.chdir(path) #change dir
+
 import pandas as pd
 import numpy as np
 from dateutil.parser import parse
@@ -9,8 +12,7 @@ import time
 import logging
 import argparse
 from reduced_data import Reduce
-path = "C:\\Users\\Xiang\\Desktop"
-os.chdir(path) #change dir
+
 class Pickle:
     def __init__(self):
         self.site = 'Shopper'
@@ -200,6 +202,7 @@ class Acquire:
                 self.check_red = False
                 self.logger.info("It totally spends: %s sec. creating all base-features !", (round(time.time()-start, 2)))
                 return self.total_cost, self.wanted, transactions_offer_new      
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-d","--debug", help="getall ruten result", action="store_true")
