@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-import os
 import time
 import logging
 import re
-path = "C:\\Users\\Xiang\\Desktop"
-os.chdir(path) #change dir
 class Reduce:
     logger = logging.getLogger('Reduce')
     def __init__(self):
