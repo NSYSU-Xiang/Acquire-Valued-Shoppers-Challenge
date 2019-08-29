@@ -8,7 +8,6 @@ import pickle
 import time
 import logging
 import argparse
-from reduced_data import Reduce #need to in the same path
 
 path = ".\\Desktop"
 logger = logging.getLogger('Acquire')
@@ -83,6 +82,9 @@ class Acquire:
                 open(self.loc_reduced) #check reduce file exists or not
             except FileNotFoundError:
                 self.logger.warning("Could not find compression data. Re-compress!!")
+                os.chdir(path)
+                from reduced_data import Reduce
+                os.chdir('..')
                 Reduce().reduced_data()
             else:
                 self.logger.info("Start to creat base-features!!")
