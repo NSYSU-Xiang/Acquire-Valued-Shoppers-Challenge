@@ -4,7 +4,7 @@
 * Then it reduced to about 1.74G.
 * It runs in about 5 ~ 15 minutes and will reduce the 35 million rows to 27 million rows.
 * The efficiency depends on the computer.
-### Then we start to creat base-features.
+### Then we start to creat base-features as below:
 * X1 = 1/0 : if the customer ever/never bought the same category product of the offer before the offer date.
 * X2 = 1/0 : if the customer ever/never bought the same company product of the offer before the offer date.
 * X3 = 1/0 : if the customer ever/never bought the same brand product of the offer before the offer date.
@@ -13,7 +13,7 @@
 * X6 : X1 * X3.
 * X7 : historical total spend of a customer ID for all product.
 * X8 : offervalue.
-##### ccb = categoty, company, brand
+##### ccb = categoty, company, brand.
 ##### days = 30, 60, 90, 120, 150, 180, inf.
 * X9,..., X29 : CD(ccb, days)
   * CD :　the purchase number of times for the same ccb and days.
