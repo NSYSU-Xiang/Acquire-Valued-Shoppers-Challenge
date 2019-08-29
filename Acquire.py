@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-path = "C:\\Users\\Xiang\\Desktop"
 import os
-os.chdir(path) #change dir
-
+path = ".\\Desktop"
+os.chdir(path)
 import pandas as pd
 import numpy as np
 from dateutil.parser import parse
@@ -11,25 +10,30 @@ import pickle
 import time
 import logging
 import argparse
-from reduced_data import Reduce
+from reduced_data import Reduce #in the same path
+
+logger = logging.getLogger('Acquire')
 
 class Pickle:
     def __init__(self):
-        self.site = 'Shopper'
+        self.site = 'Shpper'
         
-    def prepare_dump(self):#存在Shopper的資料夾
+    def prepare_dump(self):
         dirname = os.path.join(path, self.site)
         os.makedirs(dirname, exist_ok = True)
-        os.chdir(dirname)
         ts = time.time()
         filename = os.path.join(dirname, '{}.{}.pickle'.format(self.site, ts))
         return filename
     
     def syncbuf(self, obj):
-        output_file = self.prepare_dump()
-        with open(output_file, 'wb') as fd:
-            pickle.dump(obj, fd)
-            
+        if len(obj) > 0:          
+            output_file = self.prepare_dump()
+            with open(output_file, 'wb') as fd:
+                pickle.dump(obj, fd)
+            logger.info("Convert to pickle file successfully")
+        else:
+            logger.warning("Fail to convert since the file is empty")
+    
     def loadall(self, filename):
         pkl_list = []
         for pkl in filename:
@@ -38,7 +42,6 @@ class Pickle:
         return pkl_list
     
 class Acquire:
-    logger = logging.getLogger('Acquire')
     def __init__(self):
         self.ccb = ['category', 'company', 'brand']
         self.wanted = {}
@@ -201,6 +204,9 @@ class Acquire:
                                                       on = ['id']).fillna(0)
                 self.check_red = False
                 self.logger.info("It totally spends: %s sec. creating all base-features !", (round(time.time()-start, 2)))
+                Pickle().syncbuf(self.total_cost)
+                Pickle().syncbuf(self.wanted)
+                Pickle().syncbuf(self.transactions_offer_new)
                 return self.total_cost, self.wanted, transactions_offer_new      
 
 if __name__ == '__main__':
