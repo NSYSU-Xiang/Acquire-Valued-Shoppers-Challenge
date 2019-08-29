@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-path = ".\\Desktop"
-os.chdir(path)
 import pandas as pd
 import numpy as np
 from dateutil.parser import parse
@@ -10,13 +8,14 @@ import pickle
 import time
 import logging
 import argparse
-from reduced_data import Reduce #in the same path
+from reduced_data import Reduce #need to in the same path
 
+path = ".\\Desktop"
 logger = logging.getLogger('Acquire')
 
 class Pickle:
     def __init__(self):
-        self.site = 'Shpper'
+        self.site = 'Shopper'
         
     def prepare_dump(self):
         dirname = os.path.join(path, self.site)
