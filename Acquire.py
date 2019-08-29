@@ -202,7 +202,7 @@ class Acquire:
             self.logger.info("It totally spends: %s sec. creating all base-features !", (round(time.time()-start, 2)))
             Pickle().syncbuf(self.total_cost)
             Pickle().syncbuf(self.wanted)
-            Pickle().syncbuf(self.transactions_offer_new)
+            Pickle().syncbuf(transactions_offer_new)
             return self.total_cost, self.wanted, transactions_offer_new      
 
 if __name__ == '__main__':
