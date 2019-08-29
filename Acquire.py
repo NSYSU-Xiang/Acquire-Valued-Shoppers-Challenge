@@ -41,7 +41,6 @@ class Pickle:
         return pkl_list
     
 class Acquire:
-    logger = logging.getLogger('Acquire')
     def __init__(self):
         self.ccb = ['category', 'company', 'brand']
         self.wanted = {}
@@ -80,10 +79,10 @@ class Acquire:
         try: #check reduce file exists or not
             open(self.loc_reduced) 
         except FileNotFoundError: #Not exist, then run this block
-            self.logger.warning("Could not find compression data. Re-compress!!")
+            logger.warning("Could not find compression data. Re-compress!!")
             Reduce().reduced_data()
         finally: #Finally, run this block
-            self.logger.info("Start to creat base-features!!")
+            logger.info("Start to creat base-features!!")
             for item in self.ccb:
                 loc_reduced = pd.read_csv(self.loc_reduced, chunksize=500000)
                 self.wanted.update({item : pd.DataFrame()}) #建立名字為item的空列表
@@ -108,8 +107,8 @@ class Acquire:
                 date = self.wanted[item]['date'].apply(parse)
                 offerdate = self.wanted[item]['offerdate'].apply(parse)
                 self.wanted[item]['day_diff'] = (offerdate - date).dt.days  
-                self.logger.info('%s is Done!!', item)
-            self.logger.info("Spend %s sec.", (round(time.time()-start, 2)))
+                logger.info('%s is Done!!', item)
+            logger.info("Spend %s sec.", (round(time.time()-start, 2)))
             
             transaction = pd.read_csv(self.transactions_file, chunksize=500000)
             df_list = []
@@ -121,8 +120,8 @@ class Acquire:
                     continue
                 df_list.append(pd.DataFrame(check.groupby('id')['purchaseamount'].sum()))
             self.total_cost = pd.concat(df_list)
-            self.logger.info('total_cost is Done!!')
-            self.logger.info("Spend %s sec.", (round(time.time()-start, 2)))
+            logger.info('total_cost is Done!!')
+            logger.info("Spend %s sec.", (round(time.time()-start, 2)))
             
             #X1:提供offerdate之前有購買此category的ID
             length_X1 = self.intersection(transactions_offer_new['id'], self.wanted['category']['id'])
@@ -199,7 +198,7 @@ class Acquire:
                 transactions_offer_new = pd.merge(transactions_offer_new,purchase,
                                                   how='outer',
                                                   on = ['id']).fillna(0)
-            self.logger.info("It totally spends: %s sec. creating all base-features !", (round(time.time()-start, 2)))
+            logger.info("It totally spends: %s sec. creating all base-features !", (round(time.time()-start, 2)))
             Pickle().syncbuf(self.total_cost)
             Pickle().syncbuf(self.wanted)
             Pickle().syncbuf(transactions_offer_new)
