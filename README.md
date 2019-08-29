@@ -19,6 +19,6 @@
   * CD :　the purchase number of times for the same ccb and days.
 * X30,..., X50 : A(ccb, days)
   * A :　the total dollar amount of CD.
-* X51,..., X71 : A(ccb, days)
+* X51,..., X71 : Q(ccb, days)
   * Q :　the total quantity of CD.
 #### Source: https://www.kaggle.com/c/acquire-valued-shoppers-challenge
