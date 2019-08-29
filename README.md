@@ -13,8 +13,8 @@
 * X6 : X1 * X3.
 * X7 : historical total spend of a customer ID for all product.
 * X8 : offervalue.
-** ccb = categoty, company, brand
-** days = 30, 60, 90, 120, 150, 180, inf.
+##### ccb = categoty, company, brand
+##### days = 30, 60, 90, 120, 150, 180, inf.
 * X9,..., X29 : CD(ccb, days)
   * CD :　the purchase number of times for the same ccb and days.
 * X30,..., X50 : A(ccb, days)
