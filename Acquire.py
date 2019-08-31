@@ -2,7 +2,6 @@
 import os
 import pandas as pd
 import numpy as np
-from dateutil.parser import parse
 from itertools import chain, repeat
 import pickle
 import time
@@ -29,9 +28,9 @@ class Pickle:
             output_file = self.prepare_dump()
             with open(output_file, 'wb') as fd:
                 pickle.dump(obj, fd)
-            logger.info("Convert to pickle file successfully")
+            logger.info("Convert to pickle file successfully !!")
         else:
-            logger.warning("Fail to convert since the file is empty")
+            logger.warning("Fail to convert since the file is empty !!")
     
     def loadall(self, filename):
         pkl_list = []
@@ -54,8 +53,11 @@ class Acquire:
         self.loc_reduced = "loc_reduced.csv"
         
     def merge_data(self):    
+        global off_cat, off_com
         transactions_offer = pd.read_csv(self.train) #Basis matrix
         offers = pd.read_csv(self.offers_file)
+        off_cat = set(offers['category'])
+        off_com = set(offers['company'])
         ###第一種合併方式###
         offers["offer"] = offers["offer"].astype(str)
         transactions_offer["offer"] = transactions_offer["offer"].astype(str)
@@ -104,23 +106,63 @@ class Acquire:
                 self.wanted[item] = pd.concat(df_list)
                 #self.wanted[item] = self.wanted.append(df_list)
                 #轉換日期形式計算時間差
-                date = self.wanted[item]['date'].apply(parse)
-                offerdate = self.wanted[item]['offerdate'].apply(parse)
-                self.wanted[item]['day_diff'] = (offerdate - date).dt.days  
+                date = pd.to_datetime(self.wanted[item]['date'])
+                offerdate = pd.to_datetime(self.wanted[item]['offerdate'])
+                self.wanted[item]['day_diff'] = (offerdate - date).dt.days 
                 logger.info('%s is Done!!', item)
             logger.info("Spend %s sec.", (round(time.time()-start, 2)))
             
             transaction = pd.read_csv(self.transactions_file, chunksize=500000)
-            df_list = []
+            total = []
+            total_cc_cost = []
+            total_30_cost = []
+            total_30_ccb = []
+            total_ccb = []
             for chunksize_data in transaction:
                 if chunksize_data.empty:
                     break    
-                check = chunksize_data[['id', 'purchaseamount']]
+                check = chunksize_data
                 if check.empty:
                     continue
-                df_list.append(pd.DataFrame(check.groupby('id')['purchaseamount'].sum()))
-            self.total_cost = pd.concat(df_list)
-            logger.info('total_cost is Done!!')
+                #提供優惠券前30天內消費總額
+                check_block = pd.merge(transactions_offer_new[['id', 'offerdate']],
+                                       check[['id', 'date', 'purchaseamount']],
+                                       how = 'inner')
+                offerdate = pd.to_datetime(check_block['offerdate'])
+                date = pd.to_datetime(check_block['date'])
+                check_block['day_diff'] = (offerdate - date).dt.days 
+                check_30_cost = pd.concat([check_block[['id', 'purchaseamount']], self.mask(check_block, 'day_diff', 29)], axis = 1)
+                #注意，此僅捕捉True，也就是在30天內有消費紀錄的，之後合併時要考慮未消費的(要補0)
+                total_30_cost.append(pd.DataFrame(check_30_cost[check_30_cost['day_diff'] == True].groupby(['id']).sum()['purchaseamount']))
+                
+                # 提供優惠券前30天有消費過優惠券的商品('category', 'company', 'brand'要一樣)的總額、數量
+                check_ccb = pd.merge(transactions_offer_new[['id','category', 'company', 'brand', 'offerdate']],
+                                       check[['id', 'date','category', 'company', 'brand', 'purchasequantity', 'purchaseamount']],
+                                       how = 'inner')
+                offerdate = pd.to_datetime(check_ccb['offerdate'])
+                date = pd.to_datetime(check_ccb['date'])
+                check_ccb['day_diff'] = (offerdate - date).dt.days
+                check_30_ccb = pd.concat([check_ccb[['id', 'purchasequantity', 'purchaseamount']], self.mask(check_ccb, 'day_diff', 29)], axis = 1)
+                total_30_ccb.append(pd.DataFrame(check_30_ccb[check_30_ccb['day_diff'] == True].groupby(['id']).sum()[['purchasequantity', 'purchaseamount']]))
+                # 有消費過優惠券的商品('category', 'company', 'brand'要一樣)的總額、數量
+                total_ccb.append(pd.DataFrame(check_30_ccb.groupby(['id']).sum()[['purchasequantity', 'purchaseamount']]))
+                
+                #只要購買的商品所屬的category屬於優惠券中的category就加入計算消費金額
+                #只要購買的商品所屬的company屬於優惠券中的category就加入計算消費金額
+                c1 = check[check['category'].apply(lambda x: x in off_cat)]
+                c2 = check[check['company'].apply(lambda x: x in off_com)]
+                #因有可能購買的某項商品同屬於category、company會重複計算
+                ##### 因此只計算"有(True)"的，需考慮買的商品同時不屬於的#####
+                c3 = c1.append(c2).drop_duplicates()
+                total_cc_cost.append(pd.DataFrame(c3.groupby('id')['purchaseamount'].sum())['purchaseamount'])
+                total.append(pd.DataFrame(check.groupby('id')['purchaseamount'].sum())['purchaseamount'])
+            
+            total_30_cost = pd.concat(total_30_cost)
+            total_cc_cost = pd.concat(total_cc_cost) #it's Series
+            self.total_cost = pd.concat(total) #it's Series
+            total_30_ccb = pd.concat(total_30_ccb)
+            total_ccb = pd.concat(total_ccb)
+            logger.info('cost related features are Done!!')
             logger.info("Spend %s sec.", (round(time.time()-start, 2)))
             
             #X1:提供offerdate之前有購買此category的ID
@@ -147,15 +189,16 @@ class Acquire:
             # X6 = X1*X3
             transactions_offer_new['X4'] = transactions_offer_new[['X1', 'X2', 'X3']].apply(np.prod, axis = 1)
             transactions_offer_new['X5'] = transactions_offer_new[['X2', 'X3']].apply(np.prod, axis = 1)
-            transactions_offer_new['X6'] = transactions_offer_new[['X1', 'X3']].apply(np.prod, axis = 1)
             
+            transactions_offer_new['X6'] = transactions_offer_new[['X1', 'X3']].apply(np.prod, axis = 1)
+
+            ##### 再進行一次分組計算總合，避免同個ID橫跨兩個chunksize ####
+            ##### 針對Series reset_index，ID index會變成一個變數 ####
             # X7 : 計算每一個ID的過往消費總額
-            #在分組計算總合，避免同個ID橫跨兩個chunksize
             self.total_cost = round(self.total_cost.groupby(['id']).sum(), 2)
-            #加入ID(原先的index)
-            self.total_cost['id'] = self.total_cost.index
-            self.total_cost = self.total_cost.rename(columns={'purchaseamount': 'X7'}).reset_index(drop=True)
-            transactions_offer_new = pd.merge(transactions_offer_new, self.total_cost, on = ['id'])
+            self.total_cost = self.total_cost.reset_index().rename(columns={'purchaseamount': 'X7'})
+            transactions_offer_new = pd.merge(transactions_offer_new, self.total_cost, on = ['id'])  
+            
             # X8 = offervalue
             transactions_offer_new = transactions_offer_new.rename(columns={'offervalue': 'X8'})
             
@@ -198,7 +241,44 @@ class Acquire:
                 transactions_offer_new = pd.merge(transactions_offer_new,purchase,
                                                   how='outer',
                                                   on = ['id']).fillna(0)
-            logger.info("It totally spends: %s sec. creating all base-features !", (round(time.time()-start, 2)))
+            # secondary features
+            # See also X7
+            # X72 : 計算每一個ID的消費過優惠券所屬的company、category總額
+            total_cc_cost = round(total_cc_cost.groupby(['id']).sum(), 2)
+            total_cc_cost = total_cc_cost.reset_index().rename(columns={'purchaseamount': 'X72'})
+            ##### 考慮買的商品同時不屬於的 #####
+            not_cc = list(set(transactions_offer_new['id']).difference(set(total_cc_cost['id'])))
+            total_cc_cost = total_cc_cost.append(pd.DataFrame({'id':not_cc, 'X72':0}))
+            transactions_offer_new = pd.merge(transactions_offer_new, total_cc_cost, on = ['id'])
+            
+            # X73 : 提供優惠券前30天內消費總額
+            total_30_cost = round(total_30_cost.groupby(['id']).sum(), 2)
+            total_30_cost = total_30_cost.reset_index().rename(columns={'purchaseamount': 'X73'})
+            transactions_offer_new = pd.merge(transactions_offer_new, total_30_cost,
+                                              on = ['id'], how = 'outer').fillna(0)
+            
+            # X74 : 30天內購買優惠券所屬的ccb的金額
+            total_30_ccb_A = round(total_30_ccb.groupby(['id']).sum()['purchaseamount'], 2)
+            total_30_ccb_A = total_30_ccb_A.reset_index().rename(columns={'purchaseamount': 'X74'})
+            transactions_offer_new = pd.merge(transactions_offer_new, total_30_ccb_A,
+                                              on = ['id'], how = 'outer').fillna(0)
+            # X75 : 30天內購買優惠券所屬的ccb的量
+            total_30_ccb_Q = round(total_30_ccb.groupby(['id']).sum()['purchasequantity'], 2)
+            total_30_ccb_Q = total_30_ccb_Q.reset_index().rename(columns={'purchasequantity': 'X75'})
+            transactions_offer_new = pd.merge(transactions_offer_new, total_30_ccb_Q,
+                                              on = ['id'], how = 'outer').fillna(0)
+            
+            # X76 : 購買優惠券所屬的ccb的金額
+            total_ccb_A = round(total_ccb.groupby(['id']).sum()['purchaseamount'], 2)
+            total_ccb_A = total_ccb_A.reset_index().rename(columns={'purchaseamount': 'X76'})
+            transactions_offer_new = pd.merge(transactions_offer_new, total_ccb_A,
+                                              on = ['id'], how = 'outer').fillna(0)
+            # X77 : 購買優惠券所屬的ccb的量
+            total_ccb_Q = round(total_ccb.groupby(['id']).sum()['purchasequantity'], 2)
+            total_ccb_Q = total_ccb_Q.reset_index().rename(columns={'purchasequantity': 'X77'})
+            transactions_offer_new = pd.merge(transactions_offer_new, total_ccb_Q,
+                                              on = ['id'], how = 'outer').fillna(0) 
+            logger.info("It totally spends: %s sec. creating all features !", (round(time.time()-start, 2)))
             Pickle().syncbuf(self.total_cost)
             Pickle().syncbuf(self.wanted)
             Pickle().syncbuf(transactions_offer_new)
