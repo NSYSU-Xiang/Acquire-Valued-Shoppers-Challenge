@@ -2,8 +2,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
-path = "C:\\Users\\Xiang\\Desktop"
-os.chdir(path) #change dir
+os.chdir('..')
 class Plot_offer:
     def __init__(self):
         self.train = "trainHistory.csv"
