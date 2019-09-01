@@ -23,7 +23,7 @@
   * Q :　the total quantity of CD.
 ## Let start to creat secondary features as below:
 * X72 : the total amount a customer has bought the product that its **category/company** is on offer before the offer date.
-* X73 : historical total amount of a customer ID for all product in last 30 days before the offer date.
+* X73 : the total amount a customer has bought for all product in last 30 days before the offer date.
 * X74 : the total amount a customer has bought the same **category, company, brand** product of the offer in last 30 days before the offer date.
 * X75 : the total quantity a customer has bought the same **category, company, brand** product of the offer in last 30 days before the offer date.
 * X76 : the total amount a customer has bought the same **category, company, brand** product of the offer before the offer date. 
