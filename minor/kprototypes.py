@@ -5,8 +5,7 @@ import pickle
 import time
 from sklearn.preprocessing import StandardScaler
 from kmodes.kprototypes import KPrototypes
-path = "C:\\Users\\Xiang\\Desktop\\Shopper"
-os.chdir(path) #change dir
+os.chdir('.\Shopper') #change dir
 # feature normalization (feature scaling)
 z_scaler = StandardScaler()
 with open ('wanted.pickle', 'rb') as df:
@@ -22,15 +21,18 @@ for i in item:
     df[i] = deal
 
 cost = {}
+lable = {}
 start = time.time()
 K = range(1, 7)
 for i in item:
     cost.update({i : []})
+    lable.update({i : []})
     for k in K:
         print('進入k = %s'%(k))
         result = KPrototypes(n_clusters = k, init='Cao', verbose = 1,
                              n_init = 2, n_jobs = -1).fit(df[i], categorical = [0])
         print(result.cost_)
         cost[i].append(result.cost_)
+        lable[i].append(result.labels_)
 
 print("花了 %s"%( round(time.time() - start, 2)))
