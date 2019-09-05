@@ -33,4 +33,10 @@
 * X80 : how many visits in last 30 days before the offer date.
 * X81 : The interval between a customer's first transaction and the offer date.
 * X82 : The interval between a customer's last transaction and the offer date.
+* X83 : whether a customer had returned the product before
+* X84 : marketshare of each product in the category
+* X85 : prodid_spend_corr
+* X86 :  share_of_cust_bought_prod
+* X87 :  share_of_cust_bought_cat
 #### Source: [Acquire Valued Shoppers Challenge](https://www.kaggle.com/c/acquire-valued-shoppers-challenge)
+#### Reference: [Auduno. Kaggle code for Acquire Valued Shoppers Challenge](https://github.com/auduno/Kaggle-Acquire-Valued-Shoppers-Challenge)
